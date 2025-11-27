@@ -16,8 +16,14 @@ twilio_number = os.getenv("TWILIO_PHONE_NUMBER")
 # Your number
 YOUR_NUMBER = "+917995465001"
 
-# Your Render URL (update this after deployment)
-RENDER_URL = input("Enter your Render URL (e.g., https://voice-pipeline-xxxx.onrender.com): ")
+# Get Render URL
+print("\nFirst, update Twilio webhook to your Render URL:")
+print("Run: python update_twilio_webhook.py")
+print("\nThen enter your Render URL below:")
+RENDER_URL = input("Enter your Render URL (e.g., https://voice-pipeline-xxxx.onrender.com): ").strip()
+
+if not RENDER_URL.startswith("http"):
+    RENDER_URL = "https://" + RENDER_URL
 
 print("\n" + "="*60)
 print("MAKING TEST CALL")

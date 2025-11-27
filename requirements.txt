@@ -1,0 +1,6 @@
+pipecat-ai
+python-dotenv
+aiohttp
+websockets
+flask
+twilio

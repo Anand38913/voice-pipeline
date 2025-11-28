@@ -69,7 +69,7 @@ def incoming_call():
     gather.say("Press 2 for English.", voice='Polly.Joanna', language='en-IN')
     gather.say("अंग्रेजी के लिए 2 दबाएं।", voice='Polly.Aditi', language='hi-IN')
     gather.say("Press 3 for Telugu.", voice='Polly.Joanna', language='en-IN')
-    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='Polly.Karun', language='te-IN')
+    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='man', language='te-IN')
     
     # Default to Hindi if no input
     response.redirect('/voice/start?lang=hi-IN')
@@ -114,7 +114,7 @@ def start_recording():
     voice_map = {
         'hi-IN': 'Polly.Aditi',
         'en-IN': 'Polly.Joanna',
-        'te-IN': 'Polly.Karun'
+        'te-IN': 'Google.te-IN-Wavenet-A'
     }
     
     response.say(
@@ -148,7 +148,7 @@ def process_recording():
             'en-IN': "Sorry, there was an issue. Please call again.",
             'te-IN': "క్షమించండి, సమస్య వచ్చింది. దయచేసి మళ్లీ కాల్ చేయండి."
         }
-        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Karun'}
+        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
         response.say(error_msg.get(lang, error_msg['hi-IN']), voice=voice_map.get(lang), language=lang)
         return Response(str(response), mimetype='text/xml')
     
@@ -156,7 +156,7 @@ def process_recording():
     audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav', language=lang))
     
     response = VoiceResponse()
-    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Karun'}
+    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
     
     if audio_output:
         # Use Twilio's Say with the text response
@@ -197,7 +197,7 @@ def continue_call():
     voice_map = {
         'hi-IN': 'Polly.Aditi',
         'en-IN': 'Polly.Joanna',
-        'te-IN': 'Polly.Kiran'
+        'te-IN': 'man'
     }
     
     continue_msg = {

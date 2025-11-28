@@ -75,16 +75,24 @@ async def speech_to_text(audio_data, language, api_key):
             data.add_field('file', audio_data, filename='audio.wav', content_type='audio/wav')
             data.add_field('language_code', language)
             
+            print(f"[DEBUG] STT request for language: {language}")
+            
             async with session.post(
                 "https://api.sarvam.ai/speech-to-text",
                 headers=headers,
                 data=data
             ) as response:
+                print(f"[DEBUG] STT response status: {response.status}")
                 if response.status == 200:
                     result = await response.json()
-                    return result.get('transcript', '')
+                    transcript = result.get('transcript', '')
+                    print(f"[DEBUG] STT transcript: {transcript}")
+                    return transcript
+                else:
+                    error_text = await response.text()
+                    print(f"[ERROR] STT failed: {response.status} - {error_text}")
     except Exception as e:
-        print(f"STT Error: {e}")
+        print(f"[ERROR] STT Exception: {e}")
     return None
 
 

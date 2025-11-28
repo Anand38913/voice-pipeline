@@ -69,7 +69,7 @@ def incoming_call():
     gather.say("Press 2 for English.", voice='Polly.Joanna', language='en-IN')
     gather.say("अंग्रेजी के लिए 2 दबाएं।", voice='Polly.Aditi', language='hi-IN')
     gather.say("Press 3 for Telugu.", voice='Polly.Joanna', language='en-IN')
-    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='man', language='te-IN')
+    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='Polly.Aditi', language='te-IN')
     
     # Default to Hindi if no input
     response.redirect('/voice/start?lang=hi-IN')
@@ -161,7 +161,7 @@ def process_recording():
         response_text = None
     
     response = VoiceResponse()
-    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'man'}
+    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Aditi'}
     
     if audio_output and response_text:
         # Use Twilio's Say with the text response
@@ -202,7 +202,7 @@ def continue_call():
     voice_map = {
         'hi-IN': 'Polly.Aditi',
         'en-IN': 'Polly.Joanna',
-        'te-IN': 'man'
+        'te-IN': 'Polly.Aditi'
     }
     
     continue_msg = {

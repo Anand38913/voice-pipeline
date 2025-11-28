@@ -153,12 +153,17 @@ def process_recording():
         return Response(str(response), mimetype='text/xml')
     
     # Process audio through pipeline with selected language
-    audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav', language=lang))
+    try:
+        audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav', language=lang))
+    except Exception as e:
+        print(f"[ERROR] Processing failed: {e}")
+        audio_output = None
+        response_text = None
     
     response = VoiceResponse()
-    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
+    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'man'}
     
-    if audio_output:
+    if audio_output and response_text:
         # Use Twilio's Say with the text response
         response.say(response_text, voice=voice_map.get(lang), language=lang)
         

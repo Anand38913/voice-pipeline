@@ -92,7 +92,7 @@ async def auto_detect_language(audio_data, api_key):
     """Auto-detect language from audio"""
     transcripts = {}
     
-    for lang_code in ["hi-IN", "te-IN"]:
+    for lang_code in ["hi-IN", "te-IN", "en-IN"]:
         text = await speech_to_text(audio_data, lang_code, api_key)
         if text:
             transcripts[lang_code] = text
@@ -109,6 +109,9 @@ async def auto_detect_language(audio_data, api_key):
             score = sum(1 for char in text if '\u0900' <= char <= '\u097F') * 10
         elif lang_code == "te-IN":
             score = sum(1 for char in text if '\u0C00' <= char <= '\u0C7F') * 10
+        elif lang_code == "en-IN":
+            # English: count Latin characters
+            score = sum(1 for char in text if 'a' <= char.lower() <= 'z')
         else:
             score = 0
         
@@ -116,9 +119,9 @@ async def auto_detect_language(audio_data, api_key):
             best_score = score
             best_lang = lang_code
     
-    # Default to Hindi if no clear winner
+    # Default to English if no clear winner
     if not best_lang or best_score == 0:
-        best_lang = "hi-IN"
+        best_lang = "en-IN"
     
     return transcripts.get(best_lang), best_lang
 
@@ -140,6 +143,13 @@ async def generate_response(transcript, language, api_key):
 యూజర్ చెప్పిన ప్రాంతం పేరు మీ సమాధానంలో తప్పకుండా చెప్పండి.
 తప్పనిసరిగా తెలుగులో మాత్రమే సమాధానం ఇవ్వండి."""
                 print(f"[DEBUG] Using Telugu system prompt")
+            elif language == "en-IN":
+                system_prompt = """You are customer service for the electricity department in Hyderabad.
+Give brief answers (400 characters maximum).
+Write numbers in words (two, three).
+Mention the area name that the user told you in your response.
+Respond only in English."""
+                print(f"[DEBUG] Using English system prompt")
             else:  # Hindi
                 system_prompt = """आप हैदराबाद में बिजली विभाग की कस्टमर सर्विस हैं।
 संक्षिप्त जवाब दें (400 अक्षर अधिकतम).

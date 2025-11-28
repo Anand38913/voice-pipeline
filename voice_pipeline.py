@@ -32,8 +32,11 @@ async def process_audio(audio_data, language="auto"):
         # Try multiple languages and pick best
         transcript, detected_lang = await auto_detect_language(audio_data, api_key)
     else:
-        transcript = await speech_to_text(audio_data, language, api_key)
-        detected_lang = language
+        # Workaround: Sarvam AI doesn't support te-IN STT, use hi-IN for Telugu
+        stt_language = "hi-IN" if language == "te-IN" else language
+        print(f"[DEBUG] Using STT language: {stt_language} (requested: {language})")
+        transcript = await speech_to_text(audio_data, stt_language, api_key)
+        detected_lang = language  # Keep the original language for response
     
     print(f"[DEBUG] Detected/Selected language: {detected_lang}")
     print(f"[DEBUG] Transcript: {transcript}")
@@ -196,6 +199,8 @@ async def text_to_speech(text, language, api_key):
                 "Content-Type": "application/json"
             }
             
+            print(f"[DEBUG] TTS request for language: {language}")
+            
             payload = {
                 "inputs": [text],
                 "target_language_code": language,
@@ -213,13 +218,17 @@ async def text_to_speech(text, language, api_key):
                 headers=headers,
                 json=payload
             ) as response:
+                print(f"[DEBUG] TTS response status: {response.status}")
                 if response.status == 200:
                     result = await response.json()
                     audio_base64 = result.get('audios', [''])[0]
                     if audio_base64:
                         return base64.b64decode(audio_base64)
+                else:
+                    error_text = await response.text()
+                    print(f"[ERROR] TTS failed: {response.status} - {error_text}")
     except Exception as e:
-        print(f"TTS Error: {e}")
+        print(f"[ERROR] TTS Exception: {e}")
     return None
 
 

@@ -114,7 +114,7 @@ def start_recording():
     voice_map = {
         'hi-IN': 'Polly.Aditi',
         'en-IN': 'Polly.Joanna',
-        'te-IN': 'Google.te-IN-Wavenet-A'
+        'te-IN': 'Polly.Aditi'
     }
     
     response.say(
@@ -148,7 +148,7 @@ def process_recording():
             'en-IN': "Sorry, there was an issue. Please call again.",
             'te-IN': "క్షమించండి, సమస్య వచ్చింది. దయచేసి మళ్లీ కాల్ చేయండి."
         }
-        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
+        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Aditi'}
         response.say(error_msg.get(lang, error_msg['hi-IN']), voice=voice_map.get(lang), language=lang)
         return Response(str(response), mimetype='text/xml')
     

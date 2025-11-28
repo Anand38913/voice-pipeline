@@ -27,12 +27,16 @@ async def process_audio(audio_data, language="auto"):
     api_key = os.getenv("SARVAM_API_KEY")
     
     # Step 1: Speech-to-Text
+    print(f"[DEBUG] Input language parameter: {language}")
     if language == "auto":
         # Try multiple languages and pick best
         transcript, detected_lang = await auto_detect_language(audio_data, api_key)
     else:
         transcript = await speech_to_text(audio_data, language, api_key)
         detected_lang = language
+    
+    print(f"[DEBUG] Detected/Selected language: {detected_lang}")
+    print(f"[DEBUG] Transcript: {transcript}")
     
     if not transcript:
         return None, None, None
@@ -41,10 +45,13 @@ async def process_audio(audio_data, language="auto"):
     transcript = apply_corrections(transcript, detected_lang)
     
     # Step 2: Language Model
+    print(f"[DEBUG] Generating response in language: {detected_lang}")
     response_text = await generate_response(transcript, detected_lang, api_key)
     
     if not response_text:
         return None, None, None
+    
+    print(f"[DEBUG] Generated response: {response_text}")
     
     # Apply TTS corrections
     tts_text = apply_tts_corrections(response_text, detected_lang)
@@ -130,12 +137,15 @@ async def generate_response(transcript, language, api_key):
                 system_prompt = """మీరు హైదరాబాద్‌లో విద్యుత్ విభాగం కస్టమర్ సర్వీస్.
 సంక్షిప్తంగా సమాధానం ఇవ్వండి (400 అక్షరాలు గరిష్టం).
 సంఖ్యలను తెలుగు పదాలలో రాయండి (రెండు, మూడు).
-యూజర్ చెప్పిన ప్రాంతం పేరు మీ సమాధానంలో తప్పకుండా చెప్పండి."""
+యూజర్ చెప్పిన ప్రాంతం పేరు మీ సమాధానంలో తప్పకుండా చెప్పండి.
+తప్పనిసరిగా తెలుగులో మాత్రమే సమాధానం ఇవ్వండి."""
+                print(f"[DEBUG] Using Telugu system prompt")
             else:  # Hindi
                 system_prompt = """आप हैदराबाद में बिजली विभाग की कस्टमर सर्विस हैं।
 संक्षिप्त जवाब दें (400 अक्षर अधिकतम).
 संख्याओं को हिंदी शब्दों में लिखें (दो, तीन).
 यूजर ने जो इलाका बताया उसे अपने जवाब में ज़रूर दोहराएं."""
+                print(f"[DEBUG] Using Hindi system prompt")
             
             payload = {
                 "model": "sarvam-m",

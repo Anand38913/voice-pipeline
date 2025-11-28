@@ -40,10 +40,12 @@ try:
         
         print(f"\nCurrent webhook: {number.voice_url}")
         
-        # Update webhook
+        # Update webhook and clear status callback
         number.update(
             voice_url=webhook_url,
-            voice_method='POST'
+            voice_method='POST',
+            status_callback='',  # Clear ngrok status callback
+            voice_fallback_url=''  # Clear any fallback
         )
         
         print(f"\n✓ Webhook updated successfully!")

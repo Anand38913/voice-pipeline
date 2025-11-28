@@ -26,7 +26,7 @@ if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
     twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 
-async def process_audio_with_pipeline(audio_url):
+async def process_audio_with_pipeline(audio_url, language="auto"):
     """Process audio through voice pipeline"""
     
     # Download audio from Twilio
@@ -38,7 +38,7 @@ async def process_audio_with_pipeline(audio_url):
             audio_data = await response.read()
     
     # Process through unified pipeline
-    response_text, audio_output, detected_lang = await process_audio(audio_data, language="auto")
+    response_text, audio_output, detected_lang = await process_audio(audio_data, language=language)
     
     if audio_output:
         return audio_output, response_text
@@ -69,7 +69,7 @@ def incoming_call():
     gather.say("Press 2 for English.", voice='Polly.Joanna', language='en-IN')
     gather.say("अंग्रेजी के लिए 2 दबाएं।", voice='Polly.Aditi', language='hi-IN')
     gather.say("Press 3 for Telugu.", voice='Polly.Joanna', language='en-IN')
-    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='Polly.Aditi', language='te-IN')
+    gather.say("తెలుగు కోసం 3 నొక్కండి.", voice='Google.te-IN-Wavenet-A', language='te-IN')
     
     # Default to Hindi if no input
     response.redirect('/voice/start?lang=hi-IN')
@@ -114,7 +114,7 @@ def start_recording():
     voice_map = {
         'hi-IN': 'Polly.Aditi',
         'en-IN': 'Polly.Joanna',
-        'te-IN': 'Polly.Aditi'
+        'te-IN': 'Google.te-IN-Wavenet-A'
     }
     
     response.say(
@@ -148,15 +148,15 @@ def process_recording():
             'en-IN': "Sorry, there was an issue. Please call again.",
             'te-IN': "క్షమించండి, సమస్య వచ్చింది. దయచేసి మళ్లీ కాల్ చేయండి."
         }
-        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Aditi'}
+        voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
         response.say(error_msg.get(lang, error_msg['hi-IN']), voice=voice_map.get(lang), language=lang)
         return Response(str(response), mimetype='text/xml')
     
-    # Process audio through pipeline
-    audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav'))
+    # Process audio through pipeline with selected language
+    audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav', language=lang))
     
     response = VoiceResponse()
-    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Polly.Aditi'}
+    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'Google.te-IN-Wavenet-A'}
     
     if audio_output:
         # Use Twilio's Say with the text response
@@ -190,14 +190,33 @@ def process_recording():
 def continue_call():
     """Handle continue/end call"""
     digits = request.form.get('Digits')
+    lang = request.args.get('lang', 'hi-IN')
     
     response = VoiceResponse()
     
+    voice_map = {
+        'hi-IN': 'Polly.Aditi',
+        'en-IN': 'Polly.Joanna',
+        'te-IN': 'Google.te-IN-Wavenet-A'
+    }
+    
+    continue_msg = {
+        'hi-IN': "कृपया अपनी समस्या बताएं।",
+        'en-IN': "Please tell us your issue.",
+        'te-IN': "దయచేసి మీ సమస్యను చెప్పండి."
+    }
+    
+    goodbye_msg = {
+        'hi-IN': "धन्यवाद। आपका दिन शुभ हो।",
+        'en-IN': "Thank you. Have a good day.",
+        'te-IN': "ధన్యవాదాలు. మంచి రోజు కలగాలి."
+    }
+    
     if digits == '1':
         # Continue - record again
-        response.say("कृपया अपनी समस्या बताएं।", voice='Polly.Aditi', language='hi-IN')
+        response.say(continue_msg.get(lang), voice=voice_map.get(lang), language=lang)
         response.record(
-            action='/voice/process',
+            action=f'/voice/process?lang={lang}',
             method='POST',
             max_length=30,
             play_beep=True,
@@ -205,7 +224,7 @@ def continue_call():
         )
     else:
         # End call
-        response.say("धन्यवाद। आपका दिन शुभ हो।", voice='Polly.Aditi', language='hi-IN')
+        response.say(goodbye_msg.get(lang), voice=voice_map.get(lang), language=lang)
         response.hangup()
     
     return Response(str(response), mimetype='text/xml')

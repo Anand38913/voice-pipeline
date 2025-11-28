@@ -156,7 +156,7 @@ def process_recording():
     audio_output, response_text = asyncio.run(process_audio_with_pipeline(recording_url + '.wav', language=lang))
     
     response = VoiceResponse()
-    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN-ShrutiNeural}
+    voice_map = {'hi-IN': 'Polly.Aditi', 'en-IN': 'Polly.Joanna', 'te-IN': 'te-IN-Chirp3-HD-Charon'}
     
     if audio_output:
         # Use Twilio's Say with the text response

@@ -1,64 +1,137 @@
-"""
-Make a test call to your number
-"""
-
 import os
-from twilio.rest import Client
+import base64
+import requests
+from flask import Flask, request, Response
 from dotenv import load_dotenv
+from twilio.twiml.voice_response import VoiceResponse, Start, Stream
 
 load_dotenv()
+app = Flask(__name__)
 
-# Twilio credentials
-account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-twilio_number = os.getenv("TWILIO_PHONE_NUMBER")
+SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
-# Your number
-YOUR_NUMBER = "+917995465001"
+# -------------------------------
+# 1. INBOUND CALL HANDLER
+# -------------------------------
+@app.post("/voice/incoming")
+def incoming_call():
+    """
+    This answers the call and starts streaming audio in 16k L16
+    (Telugu requires clarity)
+    """
 
-# Get Render URL
-print("\nFirst, update Twilio webhook to your Render URL:")
-print("Run: python update_twilio_webhook.py")
-print("\nThen enter your Render URL below:")
-RENDER_URL = input("Enter your Render URL (e.g., https://voice-pipeline-xxxx.onrender.com): ").strip()
+    response = VoiceResponse()
 
-if not RENDER_URL.startswith("http"):
-    RENDER_URL = "https://" + RENDER_URL
-
-print("\n" + "="*60)
-print("MAKING TEST CALL")
-print("="*60)
-print(f"From: {twilio_number}")
-print(f"To: {YOUR_NUMBER}")
-print(f"Webhook: {RENDER_URL}/voice/incoming")
-print("="*60)
-
-# Initialize Twilio client
-client = Client(account_sid, auth_token)
-
-try:
-    # Make the call
-    call = client.calls.create(
-        to=YOUR_NUMBER,
-        from_=twilio_number,
-        url=f"{RENDER_URL}/voice/incoming",
-        method="POST"
+    start = Start()
+    start.stream(
+        url=f"wss://{request.host}/media",  # WebSocket
+        track="inbound_audio",
+        codec="audio/l16;rate=16000"        # CRITICAL for Telugu
     )
-    
-    print(f"\n✓ Call initiated successfully!")
-    print(f"Call SID: {call.sid}")
-    print(f"Status: {call.status}")
-    print(f"\nYou should receive a call at {YOUR_NUMBER} shortly!")
-    print("\nWhen you answer:")
-    print("1. Press 1 for Hindi, 2 for English, 3 for Telugu")
-    print("2. Speak your electricity complaint after the beep")
-    print("3. AI will respond in your selected language")
-    print("4. Press 1 to continue or 2 to end")
-    
-except Exception as e:
-    print(f"\n✗ Error: {e}")
-    print("\nPossible reasons:")
-    print("1. Trial account - verify +917995465001 at:")
-    print("   https://console.twilio.com/us1/develop/phone-numbers/manage/verified")
-    print("2. Insufficient credits")
-    print("3. Render URL not deployed yet")
+    response.append(start)
+
+    response.say("Welcome. Telugu, Hindi or English lo matladandi.", language="en-IN")
+
+    return Response(str(response), mimetype="text/xml")
+
+
+# -------------------------------
+# 2. WEBSOCKET AUDIO STREAM (MEDIA STREAM)
+# -------------------------------
+from flask_sock import Sock
+sock = Sock(app)
+
+@sock.route('/media')
+def media_stream(ws):
+    """
+    Receives Twilio audio (base64 PCM), sends to Sarvam STT,
+    gets auto-language detection, and returns TTS audio.
+    """
+
+    print("🔵 Media Stream Connected")
+
+    while True:
+        message = ws.receive()
+        if not message:
+            break
+
+        # Twilio sends JSON messages, speech frames come in "media"
+        import json
+        msg = json.loads(message)
+
+        if msg.get("event") == "media":
+            audio_b64 = msg["media"]["payload"]
+
+            # -------------------------------
+            # SEND AUDIO TO SARVAM STT
+            # -------------------------------
+            stt_payload = {
+                "config": {
+                    "language": "auto",       # Hindi + English + Telugu detection
+                    "task": "transcribe"
+                },
+                "audio": audio_b64
+            }
+
+            stt_resp = requests.post(
+                "https://api.sarvam.ai/speech-to-text",
+                json=stt_payload,
+                headers={"Authorization": f"Bearer {SARVAM_API_KEY}"}
+            ).json()
+
+            text = stt_resp.get("text", "").strip()
+            if text:
+                print(f"👂 Heard → {text}")
+
+                # -------------------------------
+                # Detect language
+                # -------------------------------
+                detected_lang = stt_resp.get("language", "en")
+
+                print(f"🌐 Detected language → {detected_lang}")
+
+                # -------------------------------
+                # Select the correct TTS voice
+                # -------------------------------
+                if detected_lang == "te":
+                    voice = "te-IN-Charlie"
+                elif detected_lang == "hi":
+                    voice = "hi-IN-Meera"
+                else:
+                    voice = "en-IN-Rhea"
+
+                # -------------------------------
+                # SEND TO SARVAM TTS
+                # -------------------------------
+                tts_payload = {
+                    "voice": voice,
+                    "input": f"Meeru cheppindi: {text}",
+                    "format": "wav"
+                }
+
+                tts_resp = requests.post(
+                    "https://api.sarvam.ai/text-to-speech",
+                    json=tts_payload,
+                    headers={"Authorization": f"Bearer {SARVAM_API_KEY}"}
+                ).json()
+
+                audio_reply = tts_resp["audio"]
+
+                # -------------------------------
+                # RETURN AUDIO TO TWILIO STREAM
+                # -------------------------------
+                ws.send(json.dumps({
+                    "event": "media",
+                    "media": {"payload": audio_reply}
+                }))
+
+    print("🔴 Media stream closed")
+
+
+@app.get("/")
+def home():
+    return "Sarvam + Twilio Voice Bot Running!"
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
